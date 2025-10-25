@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 shadow p-4 rounded bg-light">
+        <h3 class="text-center mb-4 text-danger">User Signup</h3>
+        <form method="POST">
+            <div class="mb-3">
+                <label>Username</label>
+                <input type="text" class="form-control" name="username" required>
+            </div>
+            <div class="mb-3">
+                <label>Password</label>
+                <input type="password" class="form-control" name="password" required>
+            </div>
+            <div class="mb-3">
+                <label>Full Name</label>
+                <input type="text" class="form-control" name="full_name" required>
+            </div>
+            <div class="mb-3">
+                <label>Phone Number</label>
+                <input type="text" class="form-control" name="phone" required>
+            </div>
+            <div class="mb-3">
+                <label>Address</label>
+                <input type="text" class="form-control" name="address" required>
+            </div>
+            <div class="mb-3">
+                <label>Trusted Contacts</label>
+                <input type="text" class="form-control mb-2" name="trusted_contacts" placeholder="Contact 1">
+                <input type="text" class="form-control mb-2" name="trusted_contacts" placeholder="Contact 2">
+                <input type="text" class="form-control mb-2" name="trusted_contacts" placeholder="Contact 3">
+                <small class="text-muted">Add as many as you like</small>
+            </div>
+            <div class="form-check mb-3">
+                <input type="checkbox" class="form-check-input" name="location_access" id="location_access">
+                <label class="form-check-label" for="location_access">Allow access to your location</label>
+            </div>
+            <button type="submit" class="btn btn-danger w-100">Signup</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

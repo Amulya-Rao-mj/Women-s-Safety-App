@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm p-4 bg-light">
+            <h3>Welcome, {{ community.full_name }}</h3>
+            <p>Address: {{ community.address }}</p>
+            <p>Phone: {{ community.phone }}</p>
+            <p>Skills: {{ community.skills }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

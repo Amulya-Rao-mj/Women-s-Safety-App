@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h3>Welcome, {{ user.full_name }}</h3>
+    <p><strong>Address:</strong> {{ user.address }}</p>
+    <p><strong>Phone:</strong> {{ user.phone }}</p>
+    <p><strong>Trusted Contacts:</strong> {{ user.trusted_contacts }}</p>
+
+    <!-- SOS Section -->
+    <div class="my-4 p-3 bg-danger text-white text-center rounded">
+        <h4>Feeling Unsafe?</h4>
+        <button id="sosBtn" class="btn btn-light btn-lg mt-2">🚨 SOS / Panic Button</button>
+        <p id="status" class="mt-2"></p>
+    </div>
+
+    <!-- Map Section -->
+    <div class="my-4 p-3 bg-light rounded">
+        <h4>Your Live Location:</h4>
+        <div id="map" style="height: 400px;"></div>
+    </div>
+</div>
+
+<!-- Leaflet CSS & JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const sosBtn = document.getElementById('sosBtn');
+    const status = document.getElementById('status');
+
+    // Initialize map with temporary center
+    const map = L.map('map').setView([20.5937, 78.9629], 5); // India center
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    let marker = null;
+
+    // Function to add/update marker
+    function updateMarker(lat, lon) {
+        if(marker) {
+            marker.setLatLng([lat, lon]);
+        } else {
+            marker = L.marker([lat, lon]).addTo(map);
+        }
+        map.setView([lat, lon], 16);
+    }
+
+    // Live tracking using watchPosition
+    if(navigator.geolocation) {
+        navigator.geolocation.watchPosition(
+            pos => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                updateMarker(lat, lon);
+                status.innerText = `Latitude: ${lat.toFixed(6)}, Longitude: ${lon.toFixed(6)}`;
+            },
+            err => {
+                status.innerText = "Unable to get location: " + err.message;
+            },
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+        );
+    } else {
+        status.innerText = "Geolocation not supported by your browser.";
+    }
+
+    // SOS button
+    sosBtn.addEventListener('click', () => {
+        if(navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    const latitude = pos.coords.latitude;
+                    const longitude = pos.coords.longitude;
+
+                    fetch('/sos', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ latitude, longitude })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        status.innerHTML = `<b>${data.message}</b><br>
+                            Contacts notified: ${data.contacts_notified.join(', ')}<br>
+                            Nearby volunteers: ${data.volunteers_notified.join(', ')}<br>
+                            Area safe: ${data.area_safe}`;
+                        updateMarker(latitude, longitude);
+                    })
+                    .catch(err => {
+                        status.innerText = "Error sending SOS.";
+                        console.error(err);
+                    });
+                },
+                err => { status.innerText = "Unable to get location for SOS: " + err.message; },
+                { enableHighAccuracy: true }
+            );
+        } else {
+            status.innerText = "Geolocation not supported by your browser.";
+        }
+    });
+});
+</script>
+{% endblock %}
