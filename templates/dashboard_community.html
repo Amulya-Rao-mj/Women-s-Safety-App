@@ -1,13 +1,119 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <div class="card shadow-sm p-4 bg-light">
-            <h3>Welcome, {{ community.full_name }}</h3>
-            <p>Address: {{ community.address }}</p>
-            <p>Phone: {{ community.phone }}</p>
-            <p>Skills: {{ community.skills }}</p>
+<div class="container mt-4">
+    <h2 class="text-center text-danger mb-3">Volunteer Dashboard</h2>
+    <p class="text-center text-muted">Stay online to receive nearby SOS alerts.</p>
+
+    <!-- Live Location -->
+    <div class="alert alert-info text-center" id="locationStatus">
+        Fetching your live location...
+    </div>
+
+    <!-- Active SOS Users -->
+    <div class="card shadow-sm mt-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">🚨 Active SOS Requests Nearby</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-hover text-center">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Distance (km)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="sosTable">
+                    <tr><td colspan="4" class="text-muted">Loading...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
+
+<script>
+let volunteerLat = null;
+let volunteerLon = null;
+
+// --- Get volunteer live location and send to backend ---
+function updateVolunteerLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                volunteerLat = pos.coords.latitude;
+                volunteerLon = pos.coords.longitude;
+
+                document.getElementById("locationStatus").innerText =
+                    `📍 Live Location: ${volunteerLat.toFixed(5)}, ${volunteerLon.toFixed(5)}`;
+
+                fetch("/update_vol_location", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        latitude: volunteerLat,
+                        longitude: volunteerLon
+                    })
+                });
+            },
+            (err) => {
+                document.getElementById("locationStatus").innerText = "⚠️ Location access denied!";
+            }
+        );
+    } else {
+        document.getElementById("locationStatus").innerText = "❌ Geolocation not supported!";
+    }
+}
+
+// --- Calculate distance using Haversine formula ---
+function haversine(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat/2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) *
+        Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon/2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// --- Fetch active SOS alerts ---
+async function fetchActiveSOS() {
+    const res = await fetch("/get_active_sos");
+    const data = await res.json();
+    const table = document.getElementById("sosTable");
+    table.innerHTML = "";
+
+    if (data.length === 0) {
+        table.innerHTML = `<tr><td colspan="4" class="text-muted">No active SOS alerts nearby.</td></tr>`;
+        return;
+    }
+
+    data.forEach((u) => {
+        const distance = (volunteerLat && volunteerLon)
+            ? haversine(volunteerLat, volunteerLon, u.lat, u.lon).toFixed(2)
+            : "—";
+
+        const row = `
+            <tr>
+                <td>${u.name}</td>
+                <td>${u.phone}</td>
+                <td>${distance}</td>
+                <td>
+                    <a href="https://maps.google.com/?q=${u.lat},${u.lon}" target="_blank" class="btn btn-sm btn-outline-danger">
+                        Navigate
+                    </a>
+                </td>
+            </tr>
+        `;
+        table.innerHTML += row;
+    });
+}
+
+// --- Refresh location & SOS data every few seconds ---
+updateVolunteerLocation();
+setInterval(updateVolunteerLocation, 10000);  // every 10 seconds
+setInterval(fetchActiveSOS, 8000);            // every 8 seconds
+</script>
 {% endblock %}

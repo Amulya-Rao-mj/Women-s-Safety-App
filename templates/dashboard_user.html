@@ -98,6 +98,17 @@ document.addEventListener('DOMContentLoaded', () => {
             status.innerText = "Geolocation not supported by your browser.";
         }
     });
+function fetchNearbyVolunteers() {
+    fetch("/get_nearby_vols")
+        .then(res => res.json())
+        .then(vols => {
+            console.log("Nearby Volunteers:", vols);
+            // TODO: Update map markers here
+        });
+}
+
+setInterval(fetchNearbyVolunteers, 10000); // every 10 sec
+
 });
 </script>
 {% endblock %}
